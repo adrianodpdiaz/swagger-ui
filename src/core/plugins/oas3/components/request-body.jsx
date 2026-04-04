@@ -307,12 +307,14 @@ const RequestBody = ({
     </div>
   }
 
-  const sampleRequestBody = getDefaultRequestBodyValue(
-    requestBody,
-    contentType,
-    activeExamplesKey,
-    fn,
-  )
+  const sampleRequestBody = sampleForMediaType
+    ? sampleForMediaType.first()?.get("value") ?? ""
+    : getDefaultRequestBodyValue(
+        requestBody,
+        contentType,
+        activeExamplesKey,
+        fn,
+      )
   let language = null
   let testValueForJson = getKnownSyntaxHighlighterLanguage(sampleRequestBody)
   if (testValueForJson) {
