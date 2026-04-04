@@ -98,12 +98,12 @@ describe("getOneOfExamples", () => {
     const schema = {
       oneOf: [
         {
-          "$$ref": "#/components/schemas/RegisteredUser",
+          $$ref: "#/components/schemas/RegisteredUser",
           type: "object",
           properties: { username: { type: "string" } },
         },
         {
-          "$$ref": "#/components/schemas/GuestUser",
+          $$ref: "#/components/schemas/GuestUser",
           type: "object",
           properties: { displayName: { type: "string" } },
         },
@@ -137,8 +137,16 @@ describe("getOneOfExamples", () => {
   describe("when variant has x-summary extension", () => {
     const schema = {
       anyOf: [
-        { "x-summary": "Option A", type: "object", properties: { a: { type: "string" } } },
-        { "x-summary": "Option B", type: "object", properties: { b: { type: "string" } } },
+        {
+          "x-summary": "Option A",
+          type: "object",
+          properties: { a: { type: "string" } },
+        },
+        {
+          "x-summary": "Option B",
+          type: "object",
+          properties: { b: { type: "string" } },
+        },
       ],
     }
     const requestBody = buildRequestBody(schema)
@@ -168,7 +176,11 @@ describe("getOneOfExamples", () => {
     it("returns null (no dropdown needed for a single option)", () => {
       const schema = {
         oneOf: [
-          { title: "OnlyOne", type: "object", properties: { a: { type: "string" } } },
+          {
+            title: "OnlyOne",
+            type: "object",
+            properties: { a: { type: "string" } },
+          },
         ],
       }
       const result = getOneOfExamples(buildRequestBody(schema), mediaType, fn)

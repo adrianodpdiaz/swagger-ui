@@ -57,7 +57,8 @@ export const getOneOfExamples = (requestBody, mediaType, fn) => {
 
   // Build a parent schema that omits the oneOf/anyOf key so that
   // getSampleSchema generates a sample for each individual variant.
-  const { [keyword]: _omitted, ...parentWithoutVariants } = schemaJS
+  const parentWithoutVariants = { ...schemaJS }
+  delete parentWithoutVariants[keyword]
 
   const entries = variants.map((variant, index) => {
     const variantSchema = fn.mergeJsonSchema
@@ -307,12 +308,14 @@ const RequestBody = ({
     </div>
   }
 
-  const sampleRequestBody = getDefaultRequestBodyValue(
-    requestBody,
-    contentType,
-    activeExamplesKey,
-    fn,
-  )
+  const sampleRequestBody = oneOfExamples
+    ? (oneOfExamples.get(activeExamplesKey) ?? oneOfExamples.first())?.get("value") ?? ""
+    : getDefaultRequestBodyValue(
+        requestBody,
+        contentType,
+        activeExamplesKey,
+        fn,
+      )
   let language = null
   let testValueForJson = getKnownSyntaxHighlighterLanguage(sampleRequestBody)
   if (testValueForJson) {
