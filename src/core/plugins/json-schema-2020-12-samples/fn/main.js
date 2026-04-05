@@ -19,7 +19,8 @@ export const sampleFromSchemaGeneric = (
   schema,
   config = {},
   exampleOverride = undefined,
-  respectXML = false
+  respectXML = false,
+  depth = 0
 ) => {
   // there is nothing to generate schema from
   if (schema == null && exampleOverride === undefined) return undefined
@@ -63,7 +64,10 @@ export const sampleFromSchemaGeneric = (
     name = name || "notagname"
     // add prefix to name if exists
     displayName = (prefix ? `${prefix}:` : "") + name
-    if (namespace) {
+    if (
+      namespace &&
+      (depth === 0 || !schema?.["x-xml-namespace-top-level-only"])
+    ) {
       //add prefix to namespace if exists
       let namespacePrefix = prefix ? `xmlns:${prefix}` : "xmlns"
       _attr[namespacePrefix] = namespace
@@ -154,7 +158,8 @@ export const sampleFromSchemaGeneric = (
                 props[propName],
                 config,
                 overrideE,
-                false
+                false,
+                depth + 1
               )
               _attr[attrName] = arraySample
                 .map((item) => {
@@ -191,7 +196,8 @@ export const sampleFromSchemaGeneric = (
         props[propName],
         config,
         overrideE,
-        respectXML
+        respectXML,
+        depth + 1
       )
       if (!canAddProperty(propName)) {
         return
@@ -225,7 +231,8 @@ export const sampleFromSchemaGeneric = (
           props[propName],
           config,
           overrideE,
-          respectXML
+          respectXML,
+          depth + 1
         )
       }
       propertyAddedCounter++
@@ -275,7 +282,7 @@ export const sampleFromSchemaGeneric = (
         items.xml = items.xml || xml || {}
         items.xml.name = items.xml.name || xml.name
         itemSamples = sample.map((s) =>
-          sampleFromSchemaGeneric(items, config, s, respectXML)
+          sampleFromSchemaGeneric(items, config, s, respectXML, depth + 1)
         )
       }
 
@@ -283,7 +290,13 @@ export const sampleFromSchemaGeneric = (
         contains.xml = contains.xml || xml || {}
         contains.xml.name = contains.xml.name || xml.name
         itemSamples = [
-          sampleFromSchemaGeneric(contains, config, undefined, respectXML),
+          sampleFromSchemaGeneric(
+            contains,
+            config,
+            undefined,
+            respectXML,
+            depth + 1
+          ),
           ...itemSamples,
         ]
       }
@@ -308,6 +321,9 @@ export const sampleFromSchemaGeneric = (
       }
       for (const propName in sample) {
         if (!Object.hasOwn(sample, propName)) {
+          continue
+        }
+        if (props[propName]?.["x-hide-from-example"] && depth > 0) {
           continue
         }
         if (props[propName]?.readOnly && !includeReadOnly) {
@@ -353,7 +369,8 @@ export const sampleFromSchemaGeneric = (
               merge(anyOfSchema, containsWithoutAnyOf, config),
               config,
               undefined,
-              respectXML
+              respectXML,
+              depth + 1
             )
           )
         )
@@ -367,16 +384,29 @@ export const sampleFromSchemaGeneric = (
               merge(oneOfSchema, containsWithoutOneOf, config),
               config,
               undefined,
-              respectXML
+              respectXML,
+              depth + 1
             )
           )
         )
       } else if (!respectXML || (respectXML && xml.wrapped)) {
         sampleArray.push(
-          sampleFromSchemaGeneric(contains, config, undefined, respectXML)
+          sampleFromSchemaGeneric(
+            contains,
+            config,
+            undefined,
+            respectXML,
+            depth + 1
+          )
         )
       } else {
-        return sampleFromSchemaGeneric(contains, config, undefined, respectXML)
+        return sampleFromSchemaGeneric(
+          contains,
+          config,
+          undefined,
+          respectXML,
+          depth + 1
+        )
       }
     }
 
@@ -396,7 +426,8 @@ export const sampleFromSchemaGeneric = (
               merge(i, itemsWithoutAnyOf, config),
               config,
               undefined,
-              respectXML
+              respectXML,
+              depth + 1
             )
           )
         )
@@ -410,16 +441,29 @@ export const sampleFromSchemaGeneric = (
               merge(i, itemsWithoutOneOf, config),
               config,
               undefined,
-              respectXML
+              respectXML,
+              depth + 1
             )
           )
         )
       } else if (!respectXML || (respectXML && xml.wrapped)) {
         sampleArray.push(
-          sampleFromSchemaGeneric(items, config, undefined, respectXML)
+          sampleFromSchemaGeneric(
+            items,
+            config,
+            undefined,
+            respectXML,
+            depth + 1
+          )
         )
       } else {
-        return sampleFromSchemaGeneric(items, config, undefined, respectXML)
+        return sampleFromSchemaGeneric(
+          items,
+          config,
+          undefined,
+          respectXML,
+          depth + 1
+        )
       }
     }
 
@@ -441,6 +485,9 @@ export const sampleFromSchemaGeneric = (
         continue
       }
       if (props[propName]?.deprecated) {
+        continue
+      }
+      if (props[propName]?.["x-hide-from-example"] && depth > 0) {
         continue
       }
       if (props[propName]?.readOnly && !includeReadOnly) {
@@ -472,7 +519,8 @@ export const sampleFromSchemaGeneric = (
         additionalProps,
         config,
         undefined,
-        respectXML
+        respectXML,
+        depth + 1
       )
 
       if (
