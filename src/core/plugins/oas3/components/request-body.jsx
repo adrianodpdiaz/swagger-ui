@@ -57,7 +57,8 @@ export const getOneOfExamples = (requestBody, mediaType, fn) => {
 
   // Build a parent schema that omits the oneOf/anyOf key so that
   // getSampleSchema generates a sample for each individual variant.
-  const { [keyword]: _omitted, ...parentWithoutVariants } = schemaJS
+  const parentWithoutVariants = { ...schemaJS }
+  delete parentWithoutVariants[keyword]
 
   const entries = variants.map((variant, index) => {
     const variantSchema = fn.mergeJsonSchema
