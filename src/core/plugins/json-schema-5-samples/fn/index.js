@@ -140,7 +140,7 @@ export const mergeJsonSchema = (target, source, config = {}) => {
   return merged
 }
 
-export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = undefined, respectXML = false) => {
+export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = undefined, respectXML = false, depth = 0) => {
   if(schema && isFunc(schema.toJS))
     schema = schema.toJS()
   let usePlainValue = exampleOverride !== undefined || schema && schema.example !== undefined || schema && schema.default !== undefined
@@ -202,7 +202,7 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
     name = name || "notagname"
     // add prefix to name if exists
     displayName = (prefix ? prefix + ":" : "") + name
-    if ( namespace ) {
+    if ( namespace && (depth === 0 || !schema?.["x-xml-namespace-top-level-only"]) ) {
       //add prefix to namespace if exists
       let namespacePrefix = prefix ? ( "xmlns:" + prefix ) : "xmlns"
       _attr[namespacePrefix] = namespace
@@ -342,7 +342,7 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
         }
       }
 
-      let t = sampleFromSchemaGeneric(schema && props[propName] || undefined, config, overrideE, respectXML)
+      let t = sampleFromSchemaGeneric(schema && props[propName] || undefined, config, overrideE, respectXML, depth + 1)
       if(!canAddProperty(propName)) {
         return
       }
@@ -373,7 +373,7 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
           }
         }
       } else {
-        res[propName] = sampleFromSchemaGeneric(props[propName], config, overrideE, respectXML)
+        res[propName] = sampleFromSchemaGeneric(props[propName], config, overrideE, respectXML, depth + 1)
       }
       propertyAddedCounter++
     }
@@ -430,7 +430,7 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
         itemSchema.xml.name = itemSchema.xml.name || xml.name
       }
       let itemSamples = sample
-        .map(s => sampleFromSchemaGeneric(itemSchema, config, s, respectXML))
+        .map(s => sampleFromSchemaGeneric(itemSchema, config, s, respectXML, depth + 1))
       itemSamples = handleMinMaxItems(itemSamples)
       if(xml.wrapped) {
         res[displayName] = itemSamples
@@ -452,6 +452,9 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
       }
       for (let propName in sample) {
         if (!Object.prototype.hasOwnProperty.call(sample, propName)) {
+          continue
+        }
+        if (schema && props[propName] && props[propName]["x-hide-from-example"] && depth > 0) {
           continue
         }
         if (schema && props[propName] && props[propName].readOnly && !includeReadOnly) {
@@ -487,6 +490,9 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
       if ( props[propName] && props[propName].deprecated ) {
         continue
       }
+      if ( props[propName] && props[propName]["x-hide-from-example"] && depth > 0 ) {
+        continue
+      }
       if ( props[propName] && props[propName].readOnly && !includeReadOnly ) {
         continue
       }
@@ -512,7 +518,7 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
       propertyAddedCounter++
     } else if ( additionalProperties ) {
       const additionalProps = objectify(additionalProperties)
-      const additionalPropSample = sampleFromSchemaGeneric(additionalProps, config, undefined, respectXML)
+      const additionalPropSample = sampleFromSchemaGeneric(additionalProps, config, undefined, respectXML, depth + 1)
 
       if(respectXML && additionalProps.xml && additionalProps.xml.name && additionalProps.xml.name !== "notagname")
       {
@@ -552,13 +558,13 @@ export const sampleFromSchemaGeneric = (schema, config={}, exampleOverride = und
     }
 
     if(Array.isArray(items.anyOf)) {
-      sampleArray = items.anyOf.map(i => sampleFromSchemaGeneric(mergeJsonSchema(i, items, config), config, undefined, respectXML))
+      sampleArray = items.anyOf.map(i => sampleFromSchemaGeneric(mergeJsonSchema(i, items, config), config, undefined, respectXML, depth + 1))
     } else if(Array.isArray(items.oneOf)) {
-      sampleArray = items.oneOf.map(i => sampleFromSchemaGeneric(mergeJsonSchema(i, items, config), config, undefined, respectXML))
+      sampleArray = items.oneOf.map(i => sampleFromSchemaGeneric(mergeJsonSchema(i, items, config), config, undefined, respectXML, depth + 1))
     } else if(!respectXML || respectXML && xml.wrapped) {
-      sampleArray = [sampleFromSchemaGeneric(items, config, undefined, respectXML)]
+      sampleArray = [sampleFromSchemaGeneric(items, config, undefined, respectXML, depth + 1)]
     } else {
-      return sampleFromSchemaGeneric(items, config, undefined, respectXML)
+      return sampleFromSchemaGeneric(items, config, undefined, respectXML, depth + 1)
     }
     sampleArray = handleMinMaxItems(sampleArray)
     if(respectXML && xml.wrapped) {
